@@ -107,7 +107,7 @@ const ChatPage = () => {
     };
   }, [socket, roomData, username, room, navigate]);
 
-  // 컴포넌트 언마운트 시 joinAttemptedRef 초기화
+  // 컴포넌트 언마운트 시 joinAttemptedRef 초기화ss
   useEffect(() => {
     return () => {
       // 무조건 초기화 (방 나가기 후 재입장 시 joinRoom이 반드시 호출되도록)
