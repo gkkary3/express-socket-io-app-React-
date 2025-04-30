@@ -84,30 +84,9 @@ const ChatPage = () => {
       setIsLoading(false);
       return;
     }
+  }, [username, room, navigate]);
 
-    // beforeunload 이벤트 리스너 등록 - 페이지를 떠날 때 방 나가기 처리
-    const handleBeforeUnload = (e) => {
-      if (socket && roomData && roomData.room) {
-        console.log("페이지 떠남: socket.emit('leave') 직접 호출");
-        socket.emit("leave", {});
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    // 컴포넌트 unmount 시 리스너 제거 및 방 나가기
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-
-      // 컴포넌트 언마운트 시에도 직접 socket.emit("leave") 호출
-      if (socket && roomData && roomData.room) {
-        console.log("컴포넌트 언마운트: socket.emit('leave') 직접 호출");
-        socket.emit("leave", {});
-      }
-    };
-  }, [socket, roomData, username, room, navigate]);
-
-  // 컴포넌트 언마운트 시 joinAttemptedRef 초기화ss
+  // 컴포넌트 언마운트 시 joinAttemptedRef 초기화
   useEffect(() => {
     return () => {
       // 무조건 초기화 (방 나가기 후 재입장 시 joinRoom이 반드시 호출되도록)
