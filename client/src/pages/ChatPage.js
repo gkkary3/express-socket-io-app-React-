@@ -86,6 +86,36 @@ const ChatPage = () => {
     }
   }, [username, room, navigate]);
 
+  // 방 나가기 보조 함수 (의존성 문제 해결을 위해 메모이제이션)
+  const handleAutoLeave = useMemo(() => {
+    return () => {
+      if (socket && roomData && roomData.room) {
+        console.log("자동 방 나가기 처리");
+        isLeavingRef.current = true;
+        leaveRoom();
+      }
+    };
+  }, [socket, roomData, leaveRoom]);
+
+  // 창을 닫거나 뒤로가기나 새로고침 시 방에서 자동으로 나가기 처리
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      console.log("페이지를 떠납니다: 방 나가기 처리");
+      handleAutoLeave();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // 페이지 전환 시에도 방 나가기 처리 (React Router의 라이프사이클 활용)
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+
+      // 컴포넌트 언마운트 시 방 나가기 처리
+      console.log("ChatPage 언마운트: 방 나가기 처리");
+      handleAutoLeave();
+    };
+  }, [handleAutoLeave]);
+
   // 컴포넌트 언마운트 시 joinAttemptedRef 초기화
   useEffect(() => {
     return () => {
