@@ -17,7 +17,6 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null);
   const joinAttemptedRef = useRef(false);
   const isLeavingRef = useRef(false);
-  const lastJoinTimeRef = useRef(0);
 
   // URL에서 username과 room 추출
   const searchParams = new URLSearchParams(location.search);
@@ -85,61 +84,28 @@ const ChatPage = () => {
       setIsLoading(false);
       return;
     }
-  }, [username, room, navigate]);
 
-  // 방 나가기 보조 함수 (의존성 문제 해결을 위해 메모이제이션)
-  const handleAutoLeave = useMemo(() => {
-    return () => {
-      // 페이지 로드 직후(방 입장 직후) 자동 퇴장 방지를 위한 타이머 추가
-      const isJustEntered = Date.now() - lastJoinTimeRef.current < 3000; // 3초 이내 입장 방지
-
-      if (
-        socket &&
-        roomData &&
-        roomData.room &&
-        !isJustEntered &&
-        !isLeavingRef.current
-      ) {
-        console.log("자동 방 나가기 처리");
-        isLeavingRef.current = true;
-        leaveRoom();
-      } else if (isJustEntered) {
-        console.log(
-          "방금 입장한 상태여서 자동 나가기 처리를 수행하지 않습니다"
-        );
+    // beforeunload 이벤트 리스너 등록 - 페이지를 떠날 때 방 나가기 처리
+    const handleBeforeUnload = (e) => {
+      if (socket && roomData && roomData.room) {
+        console.log("페이지 떠남: socket.emit('leave') 직접 호출");
+        socket.emit("leave", {});
       }
-    };
-  }, [socket, roomData, leaveRoom]);
-
-  // 창을 닫거나 뒤로가기나 새로고침 시 방에서 자동으로 나가기 처리
-  useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      console.log("페이지를 떠납니다: 방 나가기 처리");
-
-      // beforeunload 이벤트 발생 시 표준 처리
-      event.preventDefault();
-
-      // 크로스 브라우저 지원을 위한 표준 메시지 설정
-      const message = "채팅방을 나가시겠습니까?";
-      event.returnValue = message;
-
-      // 방금 입장한 경우가 아니라면 방 나가기 처리
-      handleAutoLeave();
-
-      return message;
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
 
-    // 페이지 전환 시에도 방 나가기 처리 (React Router의 라이프사이클 활용)
+    // 컴포넌트 unmount 시 리스너 제거 및 방 나가기
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
 
-      // 컴포넌트 언마운트 시 방 나가기 처리
-      console.log("ChatPage 언마운트: 방 나가기 처리");
-      handleAutoLeave();
+      // 컴포넌트 언마운트 시에도 직접 socket.emit("leave") 호출
+      if (socket && roomData && roomData.room) {
+        console.log("컴포넌트 언마운트: socket.emit('leave') 직접 호출");
+        socket.emit("leave", {});
+      }
     };
-  }, [handleAutoLeave]);
+  }, [socket, roomData, username, room, navigate]);
 
   // 컴포넌트 언마운트 시 joinAttemptedRef 초기화
   useEffect(() => {
@@ -159,12 +125,6 @@ const ChatPage = () => {
       roomData.users.length > 0
     ) {
       setIsLoading(false);
-      // 방 입장 시간 기록 (자동 나가기 방지용)
-      lastJoinTimeRef.current = Date.now();
-      console.log(
-        "방 입장 시간 기록:",
-        new Date(lastJoinTimeRef.current).toLocaleTimeString()
-      );
     }
   }, [roomData]);
 
@@ -269,10 +229,10 @@ const ChatPage = () => {
       {showSidebar && (
         <div className="fixed inset-0 z-20 block md:hidden">
           <div
-            className="absolute inset-0 bg-slate-900 bg-opacity-50"
+            className="absolute inset-0 bg-opacity-50 bg-slate-900"
             onClick={() => setShowSidebar(false)}
           ></div>
-          <div className="absolute left-0 top-0 bottom-0 w-64 p-5 text-white bg-slate-800">
+          <div className="absolute top-0 bottom-0 left-0 w-64 p-5 text-white bg-slate-800">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-white/90">방 정보</h2>
               <button
