@@ -57,6 +57,20 @@ const ChatPage = () => {
     }
   }, [roomData, user, isCreator]);
 
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (socket && roomData && roomData.room) {
+        socket.emit("leave", {});
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [socket, roomData]);
+
   // 디버깅: 페이지 로드 시 파라미터 출력
   useEffect(() => {
     console.log("ChatPage 마운트:", {
