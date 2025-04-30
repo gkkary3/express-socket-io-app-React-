@@ -17,6 +17,7 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null);
   const joinAttemptedRef = useRef(false);
   const isLeavingRef = useRef(false);
+  const lastJoinTimeRef = useRef(0);
 
   // URL에서 username과 room 추출
   const searchParams = new URLSearchParams(location.search);
@@ -89,10 +90,23 @@ const ChatPage = () => {
   // 방 나가기 보조 함수 (의존성 문제 해결을 위해 메모이제이션)
   const handleAutoLeave = useMemo(() => {
     return () => {
-      if (socket && roomData && roomData.room) {
+      // 페이지 로드 직후(방 입장 직후) 자동 퇴장 방지를 위한 타이머 추가
+      const isJustEntered = Date.now() - lastJoinTimeRef.current < 3000; // 3초 이내 입장 방지
+
+      if (
+        socket &&
+        roomData &&
+        roomData.room &&
+        !isJustEntered &&
+        !isLeavingRef.current
+      ) {
         console.log("자동 방 나가기 처리");
         isLeavingRef.current = true;
         leaveRoom();
+      } else if (isJustEntered) {
+        console.log(
+          "방금 입장한 상태여서 자동 나가기 처리를 수행하지 않습니다"
+        );
       }
     };
   }, [socket, roomData, leaveRoom]);
@@ -101,7 +115,18 @@ const ChatPage = () => {
   useEffect(() => {
     const handleBeforeUnload = (event) => {
       console.log("페이지를 떠납니다: 방 나가기 처리");
+
+      // beforeunload 이벤트 발생 시 표준 처리
+      event.preventDefault();
+
+      // 크로스 브라우저 지원을 위한 표준 메시지 설정
+      const message = "채팅방을 나가시겠습니까?";
+      event.returnValue = message;
+
+      // 방금 입장한 경우가 아니라면 방 나가기 처리
       handleAutoLeave();
+
+      return message;
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -134,6 +159,12 @@ const ChatPage = () => {
       roomData.users.length > 0
     ) {
       setIsLoading(false);
+      // 방 입장 시간 기록 (자동 나가기 방지용)
+      lastJoinTimeRef.current = Date.now();
+      console.log(
+        "방 입장 시간 기록:",
+        new Date(lastJoinTimeRef.current).toLocaleTimeString()
+      );
     }
   }, [roomData]);
 
