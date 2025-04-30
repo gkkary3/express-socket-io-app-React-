@@ -1,0 +1,25 @@
+{
+  "name": "express-socket-io-app-root",
+  "version": "1.0.0",
+  "description": "Full stack chat application with Express, Socket.IO and React",
+  "main": "index.js",
+  "scripts": {
+    "server": "cd server && npm start",
+    "client": "cd client && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install:server": "cd server && npm install",
+    "install:client": "cd client && npm install",
+    "install:all": "npm install && npm run install:server && npm run install:client"
+  },
+  "keywords": [
+    "express",
+    "socket.io",
+    "react",
+    "chat"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
